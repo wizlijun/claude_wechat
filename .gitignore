@@ -1,0 +1,38 @@
+# Markdown files (except README.md)
+*.md
+!README.md
+
+# Configuration files
+*.yml
+*.yaml
+
+# Shell scripts
+*.sh
+
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+combined_prompt_*.md
+output_*.md
+*_chatlog_*.md

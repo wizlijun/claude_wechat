@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "chatlog": {
+      "url": "http://127.0.0.1:5030/sse",
+      "env": {
+        "MCP_SERVER_NAME": "chatlog"
+      }
+    }
+  }
+}
+
