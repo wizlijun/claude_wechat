@@ -181,6 +181,56 @@ python analyze_logs.py -p analysis.md -i data.log -o result.md
 - 提示文件存在
 - 日志文件存在
 
+---
+
+### 6. send_ai_summary_today.sh - 微信AI总结工作流
+
+**功能**: 自动化微信群聊分析工作流，包括获取聊天记录、AI分析和发送结果
+
+**用法**:
+```bash
+./send_ai_summary_today.sh [选项]
+```
+
+**选项**:
+- `--help, -h`: 显示帮助信息
+- `--no-debug`: 关闭调试信息
+
+**工作流程**:
+1. 从多个配置的微信群获取聊天记录
+2. 使用AI分析聊天记录生成摘要
+3. 将分析结果发送到指定微信群
+
+**配置说明**:
+- `group_source_ids`: 源群组ID数组，支持多个群
+- `group_send_id`: 目标群组ID，用于发送分析结果
+- `input_prompt`: AI分析使用的提示文件路径
+- `ignore_user`: 要忽略的用户微信ID（可选）
+- `hours`: 获取聊天记录的时间范围（小时）
+
+**重试机制**:
+- AI分析具备自动重试功能，最多重试2次（总共3次尝试）
+- 当输出文件为空或不存在时自动重试
+- 重试间隔5秒，失败后会清理无效文件
+
+**示例**:
+```bash
+# 运行完整工作流
+./send_ai_summary_today.sh
+
+# 关闭调试模式运行
+./send_ai_summary_today.sh --no-debug
+
+# 查看帮助信息
+./send_ai_summary_today.sh --help
+```
+
+**依赖**:
+- 虚拟环境已激活
+- config.yml和mcp.json配置文件
+- ai_prompt.md提示文件
+- 所有Python脚本文件存在
+
 ## 使用工作流程示例
 
 ### 1. 发送消息到群聊
@@ -206,6 +256,25 @@ echo "请总结这些聊天记录的主要话题" > analysis_prompt.md
 
 # 3. 分析聊天记录
 python analyze_logs.py -p analysis_prompt.md -i recent_chat.md -o summary.md
+```
+
+### 3. 自动化工作流（推荐）
+```bash
+# 1. 配置工作流脚本
+# 编辑 send_ai_summary_today.sh 中的群组ID配置
+# 设置 group_source_ids 数组（源群组）
+# 设置 group_send_id（目标群组）
+
+# 2. 准备AI分析提示文件
+echo "请分析以下群聊记录并生成简洁的总结报告" > ai_prompt.md
+
+# 3. 运行完整自动化流程
+./send_ai_summary_today.sh
+
+# 该脚本会自动完成：
+# - 从多个群获取聊天记录
+# - AI分析生成摘要（带重试机制）
+# - 发送结果到指定群
 ```
 
 ## 注意事项
