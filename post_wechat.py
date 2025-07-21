@@ -11,6 +11,7 @@ import os
 import yaml
 import requests
 import xml.etree.ElementTree as ET
+from datetime import datetime
 from typing import Optional
 
 
@@ -95,10 +96,16 @@ def send_wechat_message(webot_url: str, wid: str, message: str) -> bool:
         bool: 发送成功返回True，失败返回False
     """
     try:
+        # 生成当前时间戳
+        timestamp = datetime.now().strftime('[%Y%m%d %H:%M:%S.%f)')[:-3] + ']'
+        
+        # 在消息前添加时间戳
+        timestamped_message = f"{timestamp}\n{message}"
+        
         # 准备POST数据
         post_data = {
             'to': wid,
-            'msg': message
+            'msg': timestamped_message
         }
         
         # 发送HTTP POST请求
