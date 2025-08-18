@@ -50,26 +50,27 @@ def main():
         # Create combined prompt
         combined_prompt = ""
         
-        # 1. Add output format instructions
-        combined_prompt += """请按照以下格式输出结果：
-<!-- start -->
-[你的分析结果在这里]
-<!-- end -->
-
-"""
         
-        # 2. Add user's prompt file content
+        # 1. Add user's prompt file content
         with open(args.prompt, 'r', encoding='utf-8') as f:
             prompt_content = f.read()
         combined_prompt += prompt_content + "\n\n"
         
-        # 3. Add all input log files content
+        # 2. Add all input log files content
         for log_file in valid_files:
             combined_prompt += f"=== {log_file} ===\n"
             with open(log_file, 'r', encoding='utf-8') as f:
                 log_content = f.read()
             combined_prompt += log_content + "\n\n"
         
+        # 3. Add output format instructions
+        combined_prompt += """请按照以下格式输出结果：
+<!-- start -->
+[你的分析结果在这里]
+<!-- end -->
+
+"""
+    
         # Save combined prompt to current directory
         date_str = datetime.now().strftime('%Y%m%d_%H%M%S')
         temp_prompt_path = f"combined_prompt_{date_str}.md"
@@ -80,12 +81,20 @@ def main():
         print(f"Combined prompt saved to: {temp_prompt_path}")
         
         # Build claude command with -p flag and cat
-        claude_cmd_str = f'claude -p "$(cat {temp_prompt_path})"'
+        # Use absolute path for crontab compatibility
+        claude_path = "/opt/homebrew/bin/claude"
+        claude_cmd_str = f'{claude_path} -p "$(cat {temp_prompt_path})"'
         
         print(f"Running command: {claude_cmd_str}")
         
+        # Set up environment for crontab compatibility
+        env = os.environ.copy()
+        env['PATH'] = f"/opt/homebrew/bin:{env.get('PATH', '')}"
+        env['ANTHROPIC_BASE_URL'] = 'https://gaccode.com/claudecode'
+        env['NODE_EXTRA_CA_CERTS'] = '/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/ca.pem'
+        
         # Execute claude command using shell=True for command substitution
-        result = subprocess.run(claude_cmd_str, shell=True, capture_output=True, text=True, check=True)
+        result = subprocess.run(claude_cmd_str, shell=True, capture_output=True, text=True, check=True, env=env)
         output = result.stdout
         
         # Extract content between <!-- start --> and <!-- end -->
@@ -94,9 +103,13 @@ def main():
         
         if match:
             msg = match.group(1).strip()
+            # Check if extracted content is empty
+            if not msg:
+                print("Error: Extracted content between markers is empty")
+                sys.exit(1)
         else:
-            print("Warning: No content found between <!-- start --> and <!-- end --> markers")
-            msg = output
+            print("Error: No content found between <!-- start --> and <!-- end --> markers")
+            sys.exit(1)
         
         # Generate output filename
         if args.output:
@@ -108,6 +121,15 @@ def main():
         # Write extracted message to output file
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(msg)
+        
+        # Verify the output file was written and is not empty
+        if not os.path.exists(output_file):
+            print("Error: Output file was not created")
+            sys.exit(1)
+            
+        if os.path.getsize(output_file) == 0:
+            print("Error: Output file is empty")
+            sys.exit(1)
         
         print(f"Analysis complete. Results saved to: {output_file}")
         print(f"Combined prompt file kept at: {temp_prompt_path}")
