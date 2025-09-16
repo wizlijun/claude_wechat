@@ -294,8 +294,65 @@ echo "请分析以下群聊记录并生成简洁的总结报告" > ai_prompt.md
 3. **连接失败**: 检查网络连接和服务器地址配置
 4. **权限错误**: 确保对输出目录有写入权限
 
+### Crontab 定时任务故障排除
+
+#### 问题：analyze_logs.py 在 crontab 中调用 Claude 失败
+
+**原因**: crontab 环境缺少必要的 PATH 和环境变量
+
+**解决方案**:
+
+1. **测试 crontab 环境**:
+```bash
+# 运行环境测试脚本
+./test_cron_env.sh
+
+# 或在 crontab 中运行测试
+# 添加到 crontab: * * * * * cd /path/to/project && ./test_cron_env.sh >> /tmp/cron_test.log 2>&1
+```
+
+2. **修复 crontab 配置**:
+```bash
+# 编辑 crontab
+crontab -e
+
+# 在文件开头添加环境变量
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
+ANTHROPIC_BASE_URL=https://gaccode.com/claudecode
+NODE_EXTRA_CA_CERTS=/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/ca.pem
+
+# 定时任务示例（每天上午9点执行）
+0 9 * * * cd /Users/bruce/git/claude_wechat && ./send_ai_summary_today.sh >> /tmp/wechat_summary.log 2>&1
+```
+
+3. **使用绝对路径**:
+```bash
+# 确保使用项目的绝对路径
+0 9 * * * cd /Users/bruce/git/claude_wechat && /Users/bruce/git/claude_wechat/send_ai_summary_today.sh
+```
+
+4. **检查日志**:
+```bash
+# 查看 crontab 系统日志
+tail -f /var/log/cron
+# 或
+grep CRON /var/log/system.log
+
+# 查看自定义日志
+tail -f /tmp/wechat_summary.log
+```
+
+#### Crontab 最佳实践
+
+1. **始终使用绝对路径**
+2. **设置必要的环境变量**
+3. **重定向输出到日志文件**
+4. **先用测试脚本验证环境**
+
 ### 调试技巧
 
 - 使用`--verbose`或`-v`参数查看详细信息
 - 检查生成的临时文件了解处理过程
 - 验证配置文件格式和服务器连接状态
+- 运行 `test_cron_env.sh` 检查 crontab 环境
+- 查看 crontab 和应用程序日志文件
