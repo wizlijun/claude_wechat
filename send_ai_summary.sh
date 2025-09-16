@@ -373,7 +373,7 @@ gen_podcast_mp3_url() {
     
     # 运行TTS生成命令
     info_echo "开始生成TTS音频文件..."
-    local tts_cmd="uv run gentts.py -v ning.wav -f \"$abs_podcast_script\" -o \"$mp3_full_path\""
+    local tts_cmd="uv run gentts.py --all -v ning.wav -f \"$abs_podcast_script\" -o \"$mp3_full_path\""
     debug_echo "执行TTS命令: $tts_cmd"
     
     # 执行TTS命令并等待完成
