@@ -41,6 +41,9 @@ output_file="ai_summary_${today_str}.md"
 # 调试信息开关
 DEBUG=true
 
+# 全局变量
+podcast_url=""
+
 # ==============================================================================
 # 调试信息输出函数
 # ==============================================================================
@@ -447,8 +450,6 @@ send_error_message() {
 # 步骤5: 发送分析结果到微信群
 # ==============================================================================
 send_to_wechat() {
-    local podcast_url="$1"  # 可选的播客URL参数
-    
     info_echo "开始发送分析结果到微信群..."
     
     debug_echo "目标群ID: $group_send_id"
@@ -565,8 +566,9 @@ main() {
         # 恢复原始输出文件用于发送AI分析结果
         output_file="ai_summary_${today_str}.md"
         
+        
         # 发送AI分析结果（可能包含播客链接）
-        if send_to_wechat "$podcast_url"; then
+        if send_to_wechat; then
             info_echo "工作流执行成功完成！"
             cleanup
             exit 0
