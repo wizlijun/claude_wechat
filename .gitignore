@@ -6,9 +6,6 @@
 *.yml
 *.yaml
 
-# Shell scripts
-*.sh
-
 # Virtual environment
 venv/
 
