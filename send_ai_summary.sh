@@ -311,7 +311,7 @@ gen_podcast_script() {
 # 步骤4: 生成播客音频，一直等待生成完成
 # ==============================================================================
 gen_podcast_mp3_url() {
-    info_echo "开始生成播客音频..."
+    info_echo "开始生成播客音频..." >&2
     
     # 读取config.yml中的配置参数
     local tts_home=$(grep "^tts_home:" config.yml | sed 's/tts_home: *//')
@@ -320,26 +320,26 @@ gen_podcast_mp3_url() {
     
     # 验证配置参数
     if [ -z "$tts_home" ] || [ -z "$mp3_home" ] || [ -z "$mp3_url" ]; then
-        error_echo "配置文件缺少必要参数: tts_home, mp3_home, mp3_url"
+        error_echo "配置文件缺少必要参数: tts_home, mp3_home, mp3_url" >&2
         return 1
     fi
     
-    debug_echo "TTS目录: $tts_home"
-    debug_echo "MP3输出目录: $mp3_home"
-    debug_echo "MP3访问URL: $mp3_url"
+    debug_echo "TTS目录: $tts_home" >&2
+    debug_echo "MP3输出目录: $mp3_home" >&2
+    debug_echo "MP3访问URL: $mp3_url" >&2
     
     # 检查tts_home目录是否存在
     if [ ! -d "$tts_home" ]; then
-        error_echo "TTS目录不存在: $tts_home"
+        error_echo "TTS目录不存在: $tts_home" >&2
         return 1
     fi
     
     # 检查mp3_home目录是否存在，不存在则创建
     if [ ! -d "$mp3_home" ]; then
-        info_echo "创建MP3输出目录: $mp3_home"
+        info_echo "创建MP3输出目录: $mp3_home" >&2
         mkdir -p "$mp3_home"
         if [ $? -ne 0 ]; then
-            error_echo "创建MP3输出目录失败: $mp3_home"
+            error_echo "创建MP3输出目录失败: $mp3_home" >&2
             return 1
         fi
     fi
@@ -348,13 +348,13 @@ gen_podcast_mp3_url() {
     local mp3file="ai_chat_$(date '+%Y%m%d%H')"
     local mp3_full_path="$mp3_home/$mp3file.mp3"
     
-    debug_echo "MP3文件名: $mp3file.mp3"
-    debug_echo "MP3完整路径: $mp3_full_path"
+    debug_echo "MP3文件名: $mp3file.mp3" >&2
+    debug_echo "MP3完整路径: $mp3_full_path" >&2
     
     # 检查播客脚本文件是否存在
     local podcast_script="$output_file"
     if [ ! -f "$podcast_script" ]; then
-        error_echo "播客脚本文件不存在: $podcast_script"
+        error_echo "播客脚本文件不存在: $podcast_script" >&2
         return 1
     fi
     
@@ -362,22 +362,22 @@ gen_podcast_mp3_url() {
     local abs_podcast_script="$(pwd)/$podcast_script"
     
     # 切换到tts_home目录
-    debug_echo "切换到TTS目录: $tts_home"
+    debug_echo "切换到TTS目录: $tts_home" >&2
     cd "$tts_home" || {
-        error_echo "无法切换到TTS目录: $tts_home"
+        error_echo "无法切换到TTS目录: $tts_home" >&2
         return 1
     }
     
     # 运行TTS生成命令
-    info_echo "开始生成TTS音频文件..."
+    info_echo "开始生成TTS音频文件..." >&2
     local tts_cmd="uv run gentts.py -v ning.wav -f \"$abs_podcast_script\" -o \"$mp3_full_path\""
-    debug_echo "执行TTS命令: $tts_cmd"
+    debug_echo "执行TTS命令: $tts_cmd" >&2
     
     # 执行TTS命令并等待完成
     if eval "$tts_cmd"; then
-        info_echo "TTS命令执行完成"
+        info_echo "TTS命令执行完成" >&2
     else
-        error_echo "TTS命令执行失败"
+        error_echo "TTS命令执行失败" >&2
         cd - > /dev/null  # 切换回原目录
         return 1
     fi
@@ -390,28 +390,28 @@ gen_podcast_mp3_url() {
     local wait_count=0
     local check_interval=5  # 每5秒检查一次
     
-    info_echo "检查MP3文件生成状态..."
+    info_echo "检查MP3文件生成状态..." >&2
     while [ $wait_count -lt $max_wait ]; do
         if [ -f "$mp3_full_path" ] && [ -s "$mp3_full_path" ]; then
-            info_echo "MP3文件生成成功: $mp3_full_path"
+            info_echo "MP3文件生成成功: $mp3_full_path" >&2
             
             # 显示文件信息
             local file_size=$(stat -f%z "$mp3_full_path" 2>/dev/null || stat -c%s "$mp3_full_path" 2>/dev/null || echo "未知")
-            debug_echo "MP3文件大小: $file_size 字节"
+            debug_echo "MP3文件大小: $file_size 字节" >&2
             
             # 返回MP3访问URL
             local mp3_access_url="$mp3_url/$mp3file.mp3"
-            info_echo "MP3访问URL: $mp3_access_url"
-            echo "$mp3_access_url"
+            info_echo "MP3访问URL: $mp3_access_url" >&2
+            printf "%s" "$mp3_access_url"
             return 0
         fi
         
-        debug_echo "等待MP3文件生成... ($wait_count/$max_wait 秒)"
+        debug_echo "等待MP3文件生成... ($wait_count/$max_wait 秒)" >&2
         sleep $check_interval
         wait_count=$((wait_count + check_interval))
     done
     
-    error_echo "MP3文件生成超时或失败: $mp3_full_path"
+    error_echo "MP3文件生成超时或失败: $mp3_full_path" >&2
     return 1
 }
 
@@ -551,7 +551,7 @@ main() {
         podcast_url=""
         if gen_podcast_script; then
             info_echo "播客脚本生成成功，开始生成音频..."
-            podcast_url=$(gen_podcast_mp3_url)
+            podcast_url=$(gen_podcast_mp3_url 2>/dev/null)
             if [ $? -eq 0 ] && [ -n "$podcast_url" ]; then
                 info_echo "播客音频生成成功: $podcast_url"
             else
