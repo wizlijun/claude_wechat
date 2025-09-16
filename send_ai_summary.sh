@@ -467,7 +467,34 @@ send_to_wechat() {
         return 1
     fi
     
-    debug_echo "播客URL: $podcast_url"
+    # 如果有播客URL，则添加到消息末尾
+    if [ -n "$podcast_url" ]; then
+        info_echo "添加播客链接到消息..."
+        local temp_file="${output_file}.tmp"
+        cp "$output_file" "$temp_file"
+        echo "" >> "$temp_file"
+        echo "podcast: $podcast_url" >> "$temp_file"
+        
+        # 使用临时文件发送
+        if python3 post_wechat.py -i "$temp_file" -wid "$group_send_id"; then
+            info_echo "AI分析结果和播客链接已成功发送到群 $group_send_id"
+            rm -f "$temp_file"
+            return 0
+        else
+            error_echo "发送到微信群失败"
+            rm -f "$temp_file"
+            return 1
+        fi
+    else
+        # 调用 post_wechat.py
+        if python3 post_wechat.py -i "$output_file" -wid "$group_send_id"; then
+            info_echo "AI分析结果已成功发送到群 $group_send_id"
+            return 0
+        else
+            error_echo "发送到微信群失败"
+            return 1
+        fi
+    fi
 }
 
 # ==============================================================================
@@ -525,12 +552,13 @@ main() {
         podcast_url=""
         if gen_podcast_script; then
             info_echo "播客脚本生成成功，开始生成音频..."
-            podcast_url=$(gen_podcast_mp3_url)
-            if [ $? -eq 0 ] && [ -n "$podcast_url" ]; then
-                info_echo "播客音频生成成功: $podcast_url"
-            else
-                error_echo "播客音频生成失败，将仅发送AI分析结果"
-                podcast_url=""
+            if gen_podcast_mp3_url; then
+                if [ $? -eq 0 ] && [ -n "$podcast_url" ]; then
+                    info_echo "播客音频生成成功: $podcast_url"
+                else
+                    error_echo "播客音频生成失败，将仅发送AI分析结果"
+                    podcast_url=""
+                fi
             fi
         else
             error_echo "播客脚本生成失败，将仅发送AI分析结果"
@@ -539,7 +567,7 @@ main() {
         # 恢复原始输出文件用于发送AI分析结果
         output_file="ai_summary_${today_str}.md"
         
-
+        
         # 发送AI分析结果（可能包含播客链接）
         if send_to_wechat; then
             info_echo "工作流执行成功完成！"
