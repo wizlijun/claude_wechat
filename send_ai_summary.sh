@@ -407,7 +407,7 @@ gen_podcast_mp3_url() {
             info_echo "MP3访问URL: $mp3_access_url"
             echo "$mp3_access_url"
             
-            podcast_url = "$mp3_access_url"
+            podcast_url="$mp3_access_url"
             
             return 0
         fi
