@@ -406,6 +406,9 @@ gen_podcast_mp3_url() {
             local mp3_access_url="$mp3_url/$mp3file.mp3"
             info_echo "MP3访问URL: $mp3_access_url"
             echo "$mp3_access_url"
+            
+            podcast_url = "$mp3_access_url"
+            
             return 0
         fi
         
@@ -415,6 +418,7 @@ gen_podcast_mp3_url() {
     done
     
     error_echo "MP3文件生成超时或失败: $mp3_full_path"
+ 
     return 1
 }
 
