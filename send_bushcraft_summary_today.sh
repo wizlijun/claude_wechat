@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export ANTHROPIC_BASE_URL=https://gaccode.com/claudecode
+export ANTHROPIC_API_KEY=sk-ant-oat01-c59fdae1647d93568b6643e619437101e7108c6d67adcc5ec6542a35bb6afcbe
+
 source venv/bin/activate
 # ==============================================================================
 # 微信AI总结工作流脚本
@@ -11,6 +14,7 @@ declare -a group_source_ids=(
     "1227513925@chatroom"
     "26924907907@chatroom"
     "18499517617@chatroom"
+    “57917091414@chatroom”
     # "56984901177@chatroom"  # 可以添加更多群ID
 )
 

@@ -68,16 +68,22 @@ switch_to_gac() {
 # Function to display current status
 display_status() {
     current_time=$(date '+%H:%M:%S')
-    current_hour=$(date '+%H')
+    local display_hour=$(date '+%H')
+    local display_minute=$(date '+%M')
+
+    # Convert to integers for comparison (remove leading zeros)
+    display_hour=$((10#$display_hour))
+    display_minute=$((10#$display_minute))
+
     echo "========================================="
     echo "Time: $current_time"
     echo "Current State: $CURRENT_STATE"
-    echo "Current Hour: $current_hour"
-    
-    if [ "$current_hour" -ge 9 ] && [ "$current_hour" -lt 23 ]; then
-        echo "Target State: cctg (work hours: 9-23)"
+    echo "Current Hour: $display_hour Minute: $display_minute"
+
+    if ([ "$display_hour" -eq 0 ] && [ "$display_minute" -ge 1 ]) || ([ "$display_hour" -ge 1 ] && [ "$display_hour" -lt 23 ]) || ([ "$display_hour" -eq 23 ] && [ "$display_minute" -lt 55 ]); then
+        echo "Target State: cctg (work hours: 00:01-23:55)"
     else
-        echo "Target State: gac (off hours: 23-9)"
+        echo "Target State: gac (off hours: 23:55-00:01)"
     fi
     echo "========================================="
 }
@@ -104,15 +110,21 @@ while true; do
     # Get current state
     get_current_state
     
-    # Get current hour
+    # Get current hour and minute
     current_hour=$(date '+%H')
-    
+    current_minute=$(date '+%M')
+
+    # Convert to integers for comparison (remove leading zeros)
+    current_hour=$((10#$current_hour))
+    current_minute=$((10#$current_minute))
+
     # Display status
     display_status
-    
+
     # Determine action based on time
-    if [ "$current_hour" -ge 9 ] && [ "$current_hour" -lt 23 ]; then
-        # Work hours: 9-23, should be cctg
+    # cctg time range: 00:01-23:55
+    if ([ "$current_hour" -eq 0 ] && [ "$current_minute" -ge 1 ]) || ([ "$current_hour" -ge 1 ] && [ "$current_hour" -lt 23 ]) || ([ "$current_hour" -eq 23 ] && [ "$current_minute" -lt 55 ]); then
+        # Work hours: 00:01-23:55, should be cctg
         if [ "$CURRENT_STATE" != "cctg" ]; then
             switch_to_cctg
         else

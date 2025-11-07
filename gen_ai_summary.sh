@@ -457,53 +457,85 @@ send_error_message() {
 }
 
 # ==============================================================================
-# 步骤5: 发送分析结果到微信群
+# 步骤5: 生成HTML并保存到web_home目录
 # ==============================================================================
-send_to_wechat() {
-    info_echo "开始发送分析结果到微信群..."
-    
-    debug_echo "目标群ID: $group_send_id"
-    debug_echo "发送文件: $output_file"
-    
+generate_html() {
+    info_echo "开始生成HTML..."
+
     # 检查输出文件是否存在
     if [ ! -f "$output_file" ]; then
-        error_echo "输出文件 $output_file 不存在，取消发送"
+        error_echo "输出文件 $output_file 不存在"
         return 1
     fi
-    
+
     # 检查输出文件是否为空
     if [ ! -s "$output_file" ]; then
-        error_echo "输出文件 $output_file 为空，取消发送"
+        error_echo "输出文件 $output_file 为空"
         return 1
     fi
-    
-    # 如果有播客URL，则添加到消息末尾
-    if [ -n "$podcast_url" ]; then
-        info_echo "添加播客链接到消息..."
-        local temp_file="${output_file}.tmp"
-        cp "$output_file" "$temp_file"
-        echo "" >> "$temp_file"
-        echo "podcast: $podcast_url" >> "$temp_file"
-        
-        # 使用临时文件发送
-        if python3 post_wechat.py -i "$temp_file" -wid "$group_send_id"; then
-            info_echo "AI分析结果和播客链接已成功发送到群 $group_send_id"
-            rm -f "$temp_file"
+
+    # 读取config.yml中的web配置
+    local web_home=$(grep "^web_home:" config.yml | sed 's/web_home: *//')
+    local web_url=$(grep "^web_url:" config.yml | sed 's/web_url: *//')
+
+    # 验证配置参数
+    if [ -z "$web_home" ] || [ -z "$web_url" ]; then
+        error_echo "配置文件缺少必要参数: web_home, web_url"
+        return 1
+    fi
+
+    debug_echo "Web目录: $web_home"
+    debug_echo "Web访问URL: $web_url"
+
+    # 检查web_home目录是否存在，不存在则创建
+    if [ ! -d "$web_home" ]; then
+        info_echo "创建Web输出目录: $web_home"
+        mkdir -p "$web_home"
+        if [ $? -ne 0 ]; then
+            error_echo "创建Web输出目录失败: $web_home"
+            return 1
+        fi
+    fi
+
+    # 生成HTML文件名
+    local html_file="ai_summary_${today_str}.html"
+    local html_full_path="$web_home/$html_file"
+
+    debug_echo "HTML文件名: $html_file"
+    debug_echo "HTML完整路径: $html_full_path"
+
+    # 使用gen_html.py生成HTML
+    info_echo "使用AI将Markdown转换为HTML..."
+    local html_gen_cmd="python3 gen_html.py -i \"$output_file\" -o \"$html_full_path\""
+
+    debug_echo "执行命令: $html_gen_cmd"
+
+    if eval "$html_gen_cmd"; then
+        if [ -f "$html_full_path" ] && [ -s "$html_full_path" ]; then
+            info_echo "HTML生成成功: $html_full_path"
+
+            # 显示文件信息
+            local file_size=$(stat -f%z "$html_full_path" 2>/dev/null || stat -c%s "$html_full_path" 2>/dev/null || echo "未知")
+            debug_echo "HTML文件大小: $file_size 字节"
+
+            # 生成访问URL
+            local html_access_url="$web_url/$html_file"
+            info_echo "HTML访问URL: $html_access_url"
+            echo ""
+            echo "=========================================="
+            echo "HTML已生成，可通过以下URL访问："
+            echo "$html_access_url"
+            echo "=========================================="
+            echo ""
+
             return 0
         else
-            error_echo "发送到微信群失败"
-            rm -f "$temp_file"
+            error_echo "HTML文件生成失败或为空"
             return 1
         fi
     else
-        # 调用 post_wechat.py
-        if python3 post_wechat.py -i "$output_file" -wid "$group_send_id"; then
-            info_echo "AI分析结果已成功发送到群 $group_send_id"
-            return 0
-        else
-            error_echo "发送到微信群失败"
-            return 1
-        fi
+        error_echo "HTML生成命令执行失败"
+        return 1
     fi
 }
 
@@ -576,18 +608,17 @@ main() {
         # fi
         info_echo "TTS播客音频生成已禁用"
         
-        # 恢复原始输出文件用于发送AI分析结果
+        # 恢复原始输出文件用于生成HTML
         output_file="ai_summary_${today_str}.md"
-        
-        
-        # 发送AI分析结果（可能包含播客链接）
-        if send_to_wechat; then
+
+
+        # 生成HTML并保存到web_home目录
+        if generate_html; then
             info_echo "工作流执行成功完成！"
             cleanup
             exit 0
         else
-            error_echo "发送步骤失败"
-            send_error_message "AI分析完成但发送到微信群失败"
+            error_echo "HTML生成步骤失败"
             exit 1
         fi
     else
